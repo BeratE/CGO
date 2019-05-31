@@ -1,0 +1,11 @@
+# Temporary emacs files
+*~
+\#*\#
+\emacs.*
+*.elc
+auto-save-list
+.\#*
+
+# Build and Target
+bin/
+obj/
