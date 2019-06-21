@@ -5,9 +5,9 @@ Nothing special, really.
 
 ***
 ### Dependencies
-* [LunarG (Vulkan SDK)](https://vulkan.lunarg.com/sdk/home) - CC BY-ND 4.0 License
-* [GLFW](https://www.glfw.org/) - zlib/libpng License
-* [GLM](https://glm.g-truc.net/0.9.9/index.html) - Happy Bunny (Modified MIT) License
+* [LunarG (Vulkan SDK)](https://vulkan.lunarg.com/sdk/home) - _CC BY-ND 4.0 License_
+* [GLFW](https://www.glfw.org/) - _zlib/libpng License_
+* [GLM](https://glm.g-truc.net/0.9.9/index.html) - _Happy Bunny (Modified MIT) License_
 
 ***
 ### Project structure
