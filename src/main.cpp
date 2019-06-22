@@ -7,12 +7,11 @@
 #include <iostream>
 
 int main(int argc, char* argv[]) {
-    CGO::Application app;
     int exitCode = EXIT_SUCCESS;
-  
     try {
-	app.run();
+	CGO::App.run();
     } catch (const std::exception &e) {
+	std::cerr << std::endl;
 	std::cerr << "# Critical Error; " << e.what() << std::endl;
 	std::cerr << "# Terminating the application" << std::endl;
 	exitCode = EXIT_FAILURE;

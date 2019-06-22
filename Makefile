@@ -28,8 +28,9 @@ all: resources $(TARGET)
 
 # Test application, enable vulkan excplicit layers
 test: all
+	VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d		
 	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib
-	VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d
+	VK_INSTANCE_LAYERS=VK_LAYER_LUNARG_standard_validation
 	./$(TARGET_DIR)/$(TARGET)
 
 # Clean generated temporary files

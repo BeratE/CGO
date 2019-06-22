@@ -1,33 +1,39 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <vector>
+#include "windowsystem.h"
+#include "rendersystem.h"
 
 const long SPF = 1.0 / 60.0;  // Seconds per Frame = 1/FPS
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
 
 namespace CGO {
     class Application {
     public:
-	Application();
 	~Application();
-
+	static Application& getInstance() {
+	    static Application instance;
+	    return instance;
+	}
+	
 	void run();
-    
-	// Callbacks
-	static void cb_glfwError(int error, const char* description);
-	static void cb_glfwKey(GLFWwindow *p_window, int key, int scancode, int action, int mods);
 
+	//Accessors
+	WindowSystem& accWindowSystem();
+	RenderSystem& accRenderSystem();
+      
     private:
+	Application();
+	Application(const Application&) = delete;
+	Application& operator=(const Application&) = delete;
+	
 	void initialize();
 	void update();
 	void shutdown();
 
-	VkInstance m_vkInstance;
-	GLFWwindow *mp_window;
+	WindowSystem m_windowSys;
+	RenderSystem m_renderSys;
     };
 }
-
+#define App Application::getInstance()
 #endif // APPLICATION_H
