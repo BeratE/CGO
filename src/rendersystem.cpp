@@ -3,18 +3,33 @@
 #include <iostream>
 #include <iomanip>
 #include <cstring>
+#include <map>
 
 using namespace CGO;
 
 RenderSystem::RenderSystem() {
-
+    m_physicalDevice = VK_NULL_HANDLE;
 }
 
 RenderSystem::~RenderSystem() {
-
 }
 
 void RenderSystem::initialize() {
+    createInstance();
+    if (ENABLE_VALIDATION_LAYERS) 
+	createDebugMessenger();
+    selectPhysicalDevice();
+    
+    // List Info
+    // std::cout << std::endl;
+    // std::cout << "> Listing avaliable extensions:" << std::endl;
+    // std::cout << "> #############################" << std::endl;
+    // for (const auto& ext : extensions) 
+    // 	std::cout << "> " << ext.extensionName << std::endl;
+    // std::cout << "> #############################" << std::endl << std::endl;
+}
+
+void RenderSystem::createInstance() {
     // Query required extensions
     std::cout << std::setw(32) << std::left << ">> Querying required extensions..";
     std::vector<const char*> reqExtensions = App.accWindowSystem().requestDisplayExtensions();
@@ -98,43 +113,89 @@ void RenderSystem::initialize() {
 	throw std::runtime_error("Failed to create Vulkan instance.");
     }
     std::cout << "\t[Done]" << std::endl;
+}
 
-    // Setup Debug Messenger
-    if (ENABLE_VALIDATION_LAYERS) {
-	std::cout << std::setw(32) << std::left << ">> Setting up debug messenger..";
-	VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = {};
-	debugMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	debugMessengerCreateInfo.messageSeverity =
-	    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-	    VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-	    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-	    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	debugMessengerCreateInfo.messageType =
-	    VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-	    VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-	    VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	debugMessengerCreateInfo.pfnUserCallback = RenderSystem::cb_vkDebug;
-	debugMessengerCreateInfo.pUserData = nullptr; 
+void RenderSystem::createDebugMessenger() {
+    std::cout << std::setw(32) << std::left << ">> Setting up debug messenger..";
+    VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = {};
+    debugMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    debugMessengerCreateInfo.messageSeverity =
+	VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debugMessengerCreateInfo.messageType =
+	VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    debugMessengerCreateInfo.pfnUserCallback = RenderSystem::cb_vkDebug;
+    debugMessengerCreateInfo.pUserData = nullptr; 
 
-	auto vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)
-	    vkGetInstanceProcAddr(m_vkInstance,"vkCreateDebugUtilsMessengerEXT");
+    auto vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)
+	vkGetInstanceProcAddr(m_vkInstance,"vkCreateDebugUtilsMessengerEXT");
      
-	if (vkCreateDebugUtilsMessengerEXT == nullptr ||
-	    vkCreateDebugUtilsMessengerEXT(m_vkInstance, &debugMessengerCreateInfo,
-					   nullptr, &m_vkDebugMessenger) != VK_SUCCESS) {
-	     vkDestroyInstance(m_vkInstance, nullptr);
-	     throw std::runtime_error("Failed to set up debug messenger.");
-	}
-	std::cout << "\t[Done]" << std::endl;
+    if (vkCreateDebugUtilsMessengerEXT == nullptr ||
+	vkCreateDebugUtilsMessengerEXT(m_vkInstance, &debugMessengerCreateInfo,
+				       nullptr, &m_vkDebugMessenger) != VK_SUCCESS) {
+	vkDestroyInstance(m_vkInstance, nullptr);
+	throw std::runtime_error("Failed to set up debug messenger.");
     }
+    std::cout << "\t[Done]" << std::endl;
+}
+
+void RenderSystem::selectPhysicalDevice() {
+    std::cout << std::setw(32) << std::left << ">> Selecting physical device..";
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, nullptr);
+    if (deviceCount == 0)
+	throw std::runtime_error("Failed to find physical device");
+  
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, devices.data());
+    for (const auto &device : devices) {
+	if (testPhysicalDevice(device)) {
+	    m_physicalDevice = device;
+	    break;
+	}
+    }
+
+    if (m_physicalDevice == VK_NULL_HANDLE) 
+	throw std::runtime_error("No device has passed the requirements test.");
+
+    std::cout << "\t[Done]" << std::endl;
+}
+
+bool RenderSystem::testPhysicalDevice(const VkPhysicalDevice &device) {
+    // Request required Queue family functionalities
+    bool foundReqQFams = false;
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+    std::map<VkQueueFlagBits, bool> reqQFamPresent;
+    for (const auto &qf_bit : QUEUE_FAMILY_LIST)
+	reqQFamPresent[qf_bit] = false;
     
-    // List Info
-    // std::cout << std::endl;
-    // std::cout << "> Listing avaliable extensions:" << std::endl;
-    // std::cout << "> #############################" << std::endl;
-    // for (const auto& ext : extensions) 
-    // 	std::cout << "> " << ext.extensionName << std::endl;
-    // std::cout << "> #############################" << std::endl << std::endl;
+    for (size_t i = 0; i < queueFamilies.size(); i++) {
+	if (queueFamilies[i].queueCount == 0)
+	    continue;
+
+	for (const auto &qf_bit : QUEUE_FAMILY_LIST) 
+	    reqQFamPresent[qf_bit] |= (queueFamilies[i].queueFlags & qf_bit);
+
+	foundReqQFams = true;
+	for (const auto &qf_bit : QUEUE_FAMILY_LIST) {
+	    foundReqQFams &= reqQFamPresent[qf_bit];
+	    if (!foundReqQFams)
+		break;
+	}
+	if (foundReqQFams)
+	    break;
+    }
+
+    
+    return foundReqQFams;
 }
 
 void RenderSystem::shutdown() {

@@ -6,14 +6,20 @@
 #include <vector>
 
 namespace CGO {
-    const std::vector<const char*> VALIDATION_LAYER_LIST = {
+    // Constants
+    // Required Validation Layers
+    static const std::vector<const char*> VALIDATION_LAYER_LIST = {
 	"VK_LAYER_LUNARG_standard_validation"
     };
-
+    // Required Queue Family Functionalities
+    static const std::vector<VkQueueFlagBits> QUEUE_FAMILY_LIST = {
+	VK_QUEUE_GRAPHICS_BIT
+    };
+    
 #ifdef NDEBUG
-    const bool ENABLE_VALIDATION_LAYERS = false;
+    static const bool ENABLE_VALIDATION_LAYERS = false;
 #else
-    const bool ENABLE_VALIDATION_LAYERS = true;
+    static const bool ENABLE_VALIDATION_LAYERS = true;
 #endif
     
     class RenderSystem {
@@ -36,8 +42,16 @@ namespace CGO {
 	void initialize();
 	void shutdown();
 
+	// Initialization routines
+	void createInstance();
+	void createDebugMessenger();
+	void selectPhysicalDevice();
+	bool testPhysicalDevice(const VkPhysicalDevice &device);
+
+	// Member
 	VkInstance m_vkInstance;
 	VkDebugUtilsMessengerEXT m_vkDebugMessenger;
+	VkPhysicalDevice m_physicalDevice;
     };
 }
 
